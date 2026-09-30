@@ -38,7 +38,7 @@ class Attention_uztkqi93(ConceptronAttention):
             elif cos.ndim == 2:
                 cos = cos[None, :, None, :]
                 sin = sin[None, :, None, :]
-                
+
             q = (q * cos + rotate_half(q) * sin).astype(dtype)
             k = (k * cos + rotate_half(k) * sin).astype(dtype)
 
@@ -93,7 +93,7 @@ class Exp_uztkqi93(nn.Module):
         cache: ConceptronCache | None = None,
         base: bool = True,
     ) -> jax.Array:
-        x = self.wte(ids)
+        x = jax.checkpoint(self.wte)(ids)
         if position_ids is None:
             if cache is not None:
                 start_idx = cache.position_idx[...]
@@ -103,20 +103,20 @@ class Exp_uztkqi93(nn.Module):
             position_ids = start_idx + jnp.arange(x.shape[1])
 
         position_embedding = self.rope(position_ids)
-        x = self.layer(x, mask, position_embedding, cache, 0)
+        x = jax.checkpoint(self.layer)(x, mask, position_embedding, cache, 0)
 
         if not base:
             position_embedding = None
 
         layer_idx = jax.new_ref(jnp.asarray(1, dtype='uint32'))
         def fwd_layer(layer, x, layer_idx):
-            x = layer(x, mask, position_embedding, cache, layer_idx[...])
+            x = jax.checkpoint(layer)(x, mask, position_embedding, cache, layer_idx[...])
             layer_idx[...] += 1
             return x, None
             
         x, _ = self.layers(fwd_layer, x, layer_idx)
-        x = self.norm(x)
-        logits = jnp.dot(x, self.lm_head[...])
+        x = jax.checkpoint(self.norm)(x)
+        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
         if cache is not None:
             cache.advance(logits.shape[1])
             
