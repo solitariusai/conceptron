@@ -1,0 +1,35 @@
+{%- if (messages[0]['role'] == 'system') -%}
+    {{ '<|obj|>system\n' + messages[0]['content'] + '<|eot|>\n\n' }}
+    {%- set messages = messages[1:] -%}
+{%- endif -%}
+{%- for message in messages -%}
+    {%- set obj = message['role'] -%}
+    {%- set info = message['content'] -%}
+    {%- if (obj == 'user') -%}
+        {{ '<|obj|>human\n' + info + '<|eot|>\n\n' }}
+    {%- elif (obj == 'assistant') -%}    
+        {{ '<|obj|>entity' }}
+        {%- if "reason" in message -%}
+            {%- set reason = message['reason'] -%}
+            {{ '<|act|>' }}
+            {%- if effort is defined and effort is string -%}
+                {{ 'effort:' + effort }}
+            {%- else -%}
+                {{ 'effort' }}
+            {%- endif -%}
+            {{ '\n' + reason + '<|eoa|>' }}
+        {%- else -%}
+            {{ '\n' }}
+        {%- endif -%}
+        {%- if (info is string) -%}
+            {{ info + '<|eot|>\n\n' }}
+        {%- endif -%}
+    {%- endif -%}    
+{%- endfor -%}
+{%- if (add_generation_prompt) -%}
+    {{ '<|obj|>entity'}}
+    {%- if (effort is defined and effort is string ) -%}
+        {{ '<|act|>effort:' + effort }}
+    {%- endif -%}
+    {{ '\n' }}
+{%- endif -%}
