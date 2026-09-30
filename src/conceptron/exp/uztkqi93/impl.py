@@ -71,9 +71,18 @@ class Decoder(nn.Module):
         position_embedding: tuple[jax.Array, jax.Array] | None = None, 
         cache: ConceptronCache | None = None,
         layer_idx: jax.Array | int | None = None,
+        add_residual: bool = True
     ):
-        x = self.attn(self.norm1(x), mask, position_embedding, cache, layer_idx) + x
-        x = self.mlp(self.norm2(x)) + x
+        res = x
+        x = self.attn(self.norm1(x), mask, position_embedding, cache, layer_idx)
+        if add_residual:
+            x = x + res
+
+        res = x
+        x = self.mlp(self.norm2(x))
+        if add_residual:
+            x = x + res
+
         return x
 
 class Exp_uztkqi93(nn.Module):
@@ -104,6 +113,52 @@ class Exp_uztkqi93(nn.Module):
 
         position_embedding = self.rope(position_ids)
         x = jax.checkpoint(self.layer)(x, mask, position_embedding, cache, 0)
+
+        if not base:
+            position_embedding = None
+
+        layer_idx = jax.new_ref(jnp.asarray(1, dtype='uint32'))
+        def fwd_layer(layer, x, layer_idx):
+            x = jax.checkpoint(layer)(x, mask, position_embedding, cache, layer_idx[...])
+            layer_idx[...] += 1
+            return x, None
+            
+        x, _ = self.layers(fwd_layer, x, layer_idx)
+        x = jax.checkpoint(self.norm)(x)
+        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+        if cache is not None:
+            cache.advance(logits.shape[1])
+            
+        return logits
+
+class Exp_uztkqi93_2(nn.Module):
+    def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
+        self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
+        self.layer = Decoder(config, rngs=rngs)
+        self.layers = nn.SeqStack([Decoder(config, rngs=rngs) for _ in range(config.num_layers - 1)])
+        self.norm = ConceptronRMSNorm(config)
+        self.lm_head = jax.new_ref(self.wte.embedding.value.T)
+        self.rope = ConceptronRoPE(config.head_dims, config.rope_theta)
+
+    def __call__(
+        self, 
+        ids: jax.Array, 
+        mask: jax.Array | None = None,
+        position_ids: jax.Array | None = None, 
+        cache: ConceptronCache | None = None,
+        base: bool = False, # different from `Exp_uztkqi93.__call__` which default is `True`
+    ) -> jax.Array:
+        x = jax.checkpoint(self.wte)(ids)
+        if position_ids is None:
+            if cache is not None:
+                start_idx = cache.position_idx[...]
+            else:
+                start_idx = 0
+
+            position_ids = start_idx + jnp.arange(x.shape[1])
+
+        position_embedding = self.rope(position_ids)
+        x = jax.checkpoint(self.layer)(x, mask, position_embedding, cache, 0, False) # not add residual in the first layer
 
         if not base:
             position_embedding = None
