@@ -8,7 +8,7 @@ from datasets import load_dataset
 from taktiny import nn
 from taktiny.data import BatchMap, DataLoader, Pack, train_validation_split
 from taktiny.trainer import DatasetConfig, Trainer, TrainingConfig
-from taktiny.utils import map_logical_axis_names, set_logical_axis_rules
+from taktiny.utils import map_logical_axis_names
 
 from conceptron._parts import ConceptronCache
 from conceptron.exp.uztkqi93 import ControlConfig, Exp_uztkqi93
@@ -34,20 +34,6 @@ def generate(model: Exp_uztkqi93, tokenizer: Any, prompt: str, max_new_tokens: i
         print(decode, end='', flush=True)
 
     print()
-
-        
-# config = ControlConfig()
-
-# model = Exp_uztkqi93(config, rngs=nn.Rngs(0))
-
-# tok = TokenizerExp()
-
-# prompt = 'How the bird flies?'
-
-# cache = ConceptronCache(config, 1, 256)
-
-# generate(model, tok, prompt, 32, cache)
-
 
 def process_dataset(repo: str, max_len: int, batch_size: int, workers: int, val_rows: int):
     ds = load_dataset(repo, split='train').select_columns('text')
@@ -145,10 +131,9 @@ if __name__ == "__main__":
 
     def loss_fn_exp(model, batch):
         input_ids = batch['input_ids']
-        position_ids = jnp.squeeze(batch['position_ids'])
-        segment_ids = jnp.cumsum(position_ids == 0) - 1
-        mask = jnp.tril(segment_ids[:, None] == segment_ids[None, :])
-
+        position_ids = batch['position_ids']
+        segment_ids = jnp.cumsum(position_ids == 0, -1) - 1
+        mask = jnp.tril(segment_ids[..., :, None] == segment_ids[..., None, :])[:, None, ...]
         logits = model(input_ids, mask, position_ids, base=False)
         loss = optax.softmax_cross_entropy_with_integer_labels(
             logits[:, :-1],
