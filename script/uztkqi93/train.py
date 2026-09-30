@@ -133,10 +133,9 @@ if __name__ == "__main__":
     
     def loss_fn_base(model, batch):
         input_ids = batch['input_ids']
-        position_ids = jnp.squeeze(batch['position_ids'])
-        segment_ids = jnp.cumsum(position_ids == 0) - 1
-        mask = jnp.tril(segment_ids[:, None] == segment_ids[None, :])
-
+        position_ids = batch['position_ids']
+        segment_ids = jnp.cumsum(position_ids == 0, -1) - 1
+        mask = jnp.tril(segment_ids[..., :, None] == segment_ids[..., None, :])[:, None, ...]
         logits = model(input_ids, mask, position_ids)
         loss = optax.softmax_cross_entropy_with_integer_labels(
             logits[:, :-1],

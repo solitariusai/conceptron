@@ -31,8 +31,14 @@ class Attention_uztkqi93(ConceptronAttention):
         k, v, q = jnp.split(x, [self.num_key_value_heads, 2 * self.num_key_value_heads], axis=-2)
         if position_embedding is not None:
             cos, sin = position_embedding # shape [T, H]
-            cos = cos[None, :, None, :]
-            sin = sin[None, :, None, :]
+            if cos.ndim == 3:
+                cos = cos[:, :, None, :]
+                sin = sin[:, :, None, :]
+
+            elif cos.ndim == 2:
+                cos = cos[None, :, None, :]
+                sin = sin[None, :, None, :]
+                
             q = (q * cos + rotate_half(q) * sin).astype(dtype)
             k = (k * cos + rotate_half(k) * sin).astype(dtype)
 
@@ -45,7 +51,7 @@ class Attention_uztkqi93(ConceptronAttention):
                 jnp.arange(k.shape[1])[None, :] <= q_pos[:, None]
             )
             mask = cache_mask if mask is None else mask & cache_mask
-
+        
         o = jax.nn.dot_product_attention(
             q, k, v, mask=mask
         )

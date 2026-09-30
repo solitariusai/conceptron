@@ -23,11 +23,9 @@ class ConceptronRoPE(nn.Module):
         *, 
         dtype: jnp.dtype = jnp.float32
     ) -> tuple[jax.Array, jax.Array]:
-        """Return (cos, sin), each shaped [sequence, head_dim]."""
-        if positions.ndim != 1:
-            raise ValueError('RoPE positions must have shape [sequence]')
-        
-        angles = positions.astype(jnp.float32)[:, None] * self.frequencies[None, :]
+        """Return (cos, sin), each shaped [..., sequence, head_dim]."""
+        freq = jnp.expand_dims(self.frequencies.value, list(range(positions.ndim - 2)))
+        angles = positions.astype(jnp.float32)[..., None] * freq[..., None, :]
         angles = jnp.concatenate((angles, angles), axis=-1)
         return jnp.cos(angles).astype(dtype), jnp.sin(angles).astype(dtype)
 
