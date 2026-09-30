@@ -170,6 +170,7 @@ if __name__ == "__main__":
             eval_steps=args.max_steps // 4 if args.max_steps > 10 else args.max_steps,
             output_dir=f'{args.out_dir}-base',
             save_at_end=args.not_save,
+            log_interval=args.log_interval,
         ),
         DatasetConfig(
             train_loader,
@@ -199,6 +200,7 @@ if __name__ == "__main__":
             eval_steps=args.max_steps // 4 if args.max_steps > 10 else args.max_steps,
             output_dir=f'{args.out_dir}-exp',
             save_at_end=args.not_save,
+            log_interval=args.log_interval,
         ),
         DatasetConfig(
             train_loader,
