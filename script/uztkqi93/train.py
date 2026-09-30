@@ -75,14 +75,14 @@ def process_dataset(repo: str, max_len: int, batch_size: int, workers: int, val_
     val_loader = DataLoader(
         val[:val_rows], 
         operations=[
-            BatchMap(tokenize, batch_size=val_rows, drop_remainder=True),
+            BatchMap(tokenize, batch_size=val_rows // workers, drop_remainder=True),
             Pack(max_len, keys='input_ids', position_key='position_ids', drop_remainder=True)
         ],
         worker_buffer_size=2,
         worker_count=workers,
         read_options=grain.ReadOptions(
             num_threads=0,
-            prefetch_buffer_size=workers,
+            prefetch_buffer_size=0,
         ),
         axis_names=('batch', 'seq'),
         batch_size=batch_size,
