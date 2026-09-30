@@ -158,7 +158,7 @@ class Exp_uztkqi93_2(nn.Module):
             position_ids = start_idx + jnp.arange(x.shape[1])
 
         position_embedding = self.rope(position_ids)
-        x = jax.checkpoint(self.layer)(x, mask, position_embedding, cache, 0, False) # not add residual in the first layer
+        x = jax.checkpoint(self.layer, static_argnums=5)(x, mask, position_embedding, cache, 0, False) # not add residual in the first layer
 
         if not base:
             position_embedding = None
