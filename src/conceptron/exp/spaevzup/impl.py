@@ -109,9 +109,10 @@ class Exp_spaevzup_pair(nn.Module):
         position_embedding = self.rope(position_ids)
         layer_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
         def fwd_layer(layer, x, layer_idx):
-            x = jax.checkpoint(layer)(x, mask, position_embedding, cache, layer_idx[...])
+            remat_layer = jax.checkpoint(layer)
+            x = remat_layer(x, mask, position_embedding, cache, layer_idx[...])
             layer_idx[...] += 1
-            x = jax.checkpoint(layer)(x, mask, position_embedding, cache, layer_idx[...])
+            x = remat_layer(x, mask, position_embedding, cache, layer_idx[...])
             layer_idx[...] += 1
             return x, None
             
