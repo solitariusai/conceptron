@@ -139,7 +139,7 @@ if __name__ == "__main__":
             optimizer=optimizer,
             eval_strategy='steps' if args.eval else 'no',
             eval_steps=args.max_steps // 4 if args.max_steps > 10 else args.max_steps,
-            output_dir=f'{args.out_dir}-exp-3',
+            output_dir=f'{args.out_dir}-exp-5',
             save_at_end=args.not_save,
             log_interval=args.log_interval,
         ),
