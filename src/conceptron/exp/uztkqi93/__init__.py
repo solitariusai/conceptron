@@ -4,6 +4,7 @@ from conceptron.exp.uztkqi93.impl import (
     Exp_uztkqi93_2,
     Exp_uztkqi93_3,
     Exp_uztkqi93_4,
+    Exp_uztkqi93_5,
 )
 
 __all__ = [
@@ -11,5 +12,6 @@ __all__ = [
     'Exp_uztkqi93',
     'Exp_uztkqi93_2',
     'Exp_uztkqi93_3',
-    'Exp_uztkqi93_4'
+    'Exp_uztkqi93_4',
+    'Exp_uztkqi93_5',
 ]
