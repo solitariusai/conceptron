@@ -11,7 +11,7 @@ from taktiny.trainer import DatasetConfig, Trainer, TrainingConfig
 from taktiny.utils import map_logical_axis_names
 
 from conceptron._parts import ConceptronCache
-from conceptron.exp.uztkqi93 import ControlConfig, Exp_uztkqi93_6
+from conceptron.exp.uztkqi93 import ControlConfig, Exp_uztkqi93_7
 from conceptron.proc import TokenizerExp
 
 
@@ -20,7 +20,7 @@ def forward(model, ids, mask, cache) -> jax.Array:
     logits = model(ids, mask, cache=cache)
     return logits
 
-def generate(model: Exp_uztkqi93_6, tokenizer: Any, prompt: str, max_new_tokens: int, cache: ConceptronCache):
+def generate(model: Exp_uztkqi93_7, tokenizer: Any, prompt: str, max_new_tokens: int, cache: ConceptronCache):
     print(prompt, end='', flush=True)
     ids = jnp.asarray(tokenizer.encode(prompt, return_tensors='np'))
     mask = jnp.tril(jnp.ones((ids.shape[1], cache.cache_length), dtype=jnp.bool_))
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     schedule = optax.cosine_decay_schedule(args.lr, args.max_steps)
     optimizer = optax.adamw(schedule, weight_decay=args.wd)
 
-    base_model = Exp_uztkqi93_6(config, rngs=nn.Rngs(0))
+    base_model = Exp_uztkqi93_7(config, rngs=nn.Rngs(0))
     trainer = Trainer(
         base_model,
         TrainingConfig(

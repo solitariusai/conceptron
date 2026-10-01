@@ -384,11 +384,57 @@ class Exp_uztkqi93_6(nn.Module):
             
         return logits
 
+class Exp_uztkqi93_7(nn.Module):
+    def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
+        self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
+        k = 8
+        num_layers_quater = config.num_layers // k
+        self.layers = [nn.SeqStack([Decoder(config, rngs=rngs) for _ in range(num_layers_quater)]) for _ in range(k)]
+        self.norm = ConceptronRMSNorm(config)
+        self.lm_head = jax.new_ref(self.wte.embedding.value.T)
+        self.rope = ConceptronRoPE(config.head_dims, config.rope_theta)
+
+    def __call__(
+        self, 
+        ids: jax.Array, 
+        mask: jax.Array | None = None,
+        position_ids: jax.Array | None = None, 
+        cache: ConceptronCache | None = None,
+    ) -> jax.Array:
+        x = jax.checkpoint(self.wte)(ids)
+        if position_ids is None:
+            if cache is not None:
+                start_idx = cache.position_idx[...]
+            else:
+                start_idx = 0
+
+            position_ids = start_idx + jnp.arange(x.shape[1])
+
+        position_embedding = self.rope(position_ids)
+        layer_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
+        def fwd_layer(layer, z, x, layer_idx):
+            z = jax.checkpoint(layer, static_argnums=(5, 6))(x, mask, position_embedding, cache, layer_idx[...], False, True) + z
+            layer_idx[...] += 1
+            return z, None
+
+        for layer in self.layers:
+            z = x
+            z, _ = layer(fwd_layer, z, x, layer_idx)
+            x = x + z
+
+        x = jax.checkpoint(self.norm)(x)
+        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+        if cache is not None:
+            cache.advance(logits.shape[1])
+            
+        return logits
+
 __all__ = [
     'Exp_uztkqi93', 
     'Exp_uztkqi93_2', 
     'Exp_uztkqi93_3', 
     'Exp_uztkqi93_4', 
     'Exp_uztkqi93_5', 
-    'Exp_uztkqi93_6'
+    'Exp_uztkqi93_6',
+    'Exp_uztkqi93_7',
 ]
