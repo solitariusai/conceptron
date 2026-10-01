@@ -413,7 +413,7 @@ class Exp_uztkqi93_7(nn.Module):
         position_embedding = self.rope(position_ids)
         layer_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
         def fwd_layer(layer, z, x, layer_idx):
-            z = jax.checkpoint(layer, static_argnums=(5, 6))(x, mask, position_embedding, cache, layer_idx[...], False, True) + z
+            z = jax.checkpoint(layer, static_argnums=5)(x, mask, position_embedding, cache, layer_idx[...], False) + z
             layer_idx[...] += 1
             return z, None
 
