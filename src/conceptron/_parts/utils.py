@@ -6,10 +6,17 @@ from conceptron._parts.conf import ConceptronTextConfig
 
 
 class ConceptronCache(Pytree):
-    def __init__(self, config: ConceptronTextConfig, num_batches: int, max_sequences: int = 1024, dtype: str | None = None):
+    def __init__(
+        self, 
+        config: ConceptronTextConfig, 
+        num_batches: int, 
+        max_sequences: int = 1024, 
+        dtype: str | None = None, 
+        num_layers: int | None = None
+    ):
         num_key_value_heads = config.num_key_value_heads
         head_dims = config.head_dims
-        num_layers = config.num_layers
+        num_layers = num_layers if num_layers is not None else config.num_layers
         if dtype is None:
             self.dtype = config.dtype
 

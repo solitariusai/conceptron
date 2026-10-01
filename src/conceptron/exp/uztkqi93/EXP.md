@@ -1,1 +1,1 @@
-only add position embeddings once
+for more: https://medium.com/@shinapri/why-applying-position-embedding-every-layers-in-transformer-model-65f840d8ce33

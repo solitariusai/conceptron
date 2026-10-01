@@ -150,11 +150,11 @@ if __name__ == "__main__":
         loss_fn=loss_fn,
     )
     
-    print('=' * 20 + 'Start Training Exp5 Model' + '=' * 20)
+    print('=' * 20 + 'Start Training Exp6 Model' + '=' * 20)
     trainer.train()
     print()
 
-    print('=' * 20 + 'Generating With Exp4 Model' + '=' * 20)
+    print('=' * 20 + 'Generating With Exp6 Model' + '=' * 20)
     cache = ConceptronCache(config, 1, 512)
     generate(base_model, tok, prompt='Hello, ', max_new_tokens=256, cache=cache)
     print('=' * 60)
