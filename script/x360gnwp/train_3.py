@@ -11,7 +11,7 @@ from taktiny.trainer import DatasetConfig, Trainer, TrainingConfig
 from taktiny.utils import map_logical_axis_names
 
 from conceptron._parts import ConceptronCache
-from conceptron.exp.spaevzup import ControlConfig, Exp_spaevzup_block, Exp_spaevzup_pair
+from conceptron.exp.x360gnwp import ControlConfig, Exp_x360gnwp_3
 from conceptron.proc import TokenizerExp
 
 
@@ -20,7 +20,7 @@ def forward(model, ids, mask, cache) -> jax.Array:
     logits = model(ids, mask, cache=cache)
     return logits
 
-def generate(model: Exp_spaevzup_block | Exp_spaevzup_pair, tokenizer: Any, prompt: str, max_new_tokens: int, cache: ConceptronCache):
+def generate(model: Exp_x360gnwp_3, tokenizer: Any, prompt: str, max_new_tokens: int, cache: ConceptronCache):
     print(prompt, end='', flush=True)
     ids = jnp.asarray(tokenizer.encode(prompt, return_tensors='np'))
     mask = jnp.tril(jnp.ones((ids.shape[1], cache.cache_length), dtype=jnp.bool_))
@@ -40,7 +40,7 @@ def process_dataset(repo: str, max_len: int, batch_size: int, workers: int, val_
     train, val = train_validation_split(ds, 0.1)
     def tokenize(rows):
         rows = jax.tree.map(lambda *r: list(r), *rows)
-        return {'input_ids': tok.encode(rows['text'])}
+        return {'input_ids': tok.encode(rows['text'])} # ty: ignore[unresolved-attribute]
 
     train_loader = DataLoader(
         train, 
@@ -130,16 +130,16 @@ if __name__ == "__main__":
     schedule = optax.cosine_decay_schedule(args.lr, args.max_steps)
     optimizer = optax.adamw(schedule, weight_decay=args.wd)
 
-    pair_model = Exp_spaevzup_pair(config, rngs=nn.Rngs(0))
+    model = Exp_x360gnwp_3(config, rngs=nn.Rngs(0))
     trainer = Trainer(
-        pair_model,
+        model,
         TrainingConfig(
             max_steps=args.max_steps,
             schedule=schedule,
             optimizer=optimizer,
             eval_strategy='steps' if args.eval else 'no',
             eval_steps=args.max_steps // 4 if args.max_steps > 10 else args.max_steps,
-            output_dir=f'{args.out_dir}-exp-pair',
+            output_dir=f'{args.out_dir}-x360gnwp-3',
             save_at_end=args.not_save,
             log_interval=args.log_interval,
         ),
@@ -150,59 +150,25 @@ if __name__ == "__main__":
         loss_fn=loss_fn,
     )
     
-    print('=' * 20 + 'Start Training Pair Model' + '=' * 20)
+    name = 'Exp-3'
+    print('=' * 20 + f'Start Training {name}' + '=' * 20)
     trainer.train()
     print()
 
-    print('=' * 20 + 'Generating With Pair Model' + '=' * 20)
-    cache = ConceptronCache(config, 1, 768, num_layers=config.num_layers * 2)
-    generate(pair_model, tok, prompt='Hello, ', max_new_tokens=512, cache=cache)
+    print('=' * 20 + f'Generating With {name}' + '=' * 20)
+    cache = ConceptronCache(config, 1, 512)
+    generate(model, tok, prompt='Hello, ', max_new_tokens=256, cache=cache)
     print('=' * 60)
-    cache = ConceptronCache(config, 1, 768, num_layers=config.num_layers * 2)
-    generate(pair_model, tok, prompt='AI is', max_new_tokens=512, cache=cache)
+    cache = ConceptronCache(config, 1, 512)
+    generate(model, tok, prompt='AI is', max_new_tokens=256, cache=cache)
     print('=' * 60)
-    cache = ConceptronCache(config, 1, 768, num_layers=config.num_layers * 2)
-    generate(pair_model, tok, prompt='Mathematics', max_new_tokens=512, cache=cache)
+    cache = ConceptronCache(config, 1, 512)
+    generate(model, tok, prompt='Mathematics', max_new_tokens=256, cache=cache)
     print('=' * 60)
-    cache = ConceptronCache(config, 1, 768, num_layers=config.num_layers * 2)
-    generate(pair_model, tok, prompt='Neural Network', max_new_tokens=512, cache=cache)
+    cache = ConceptronCache(config, 1, 512)
+    generate(model, tok, prompt='Neural Network', max_new_tokens=256, cache=cache)
     print('=' * 60)
-    del pair_model
+    cache = ConceptronCache(config, 1, 512)
+    generate(model, tok, prompt='If I can talk like other Language Model I want to say', max_new_tokens=256, cache=cache)
+    print('=' * 60)
 
-    block_model = Exp_spaevzup_block(config, rngs=nn.Rngs(0))
-    trainer = Trainer(
-        block_model,
-        TrainingConfig(
-            max_steps=args.max_steps,
-            schedule=schedule,
-            optimizer=optimizer,
-            eval_strategy='steps' if args.eval else 'no',
-            eval_steps=args.max_steps // 4 if args.max_steps > 10 else args.max_steps,
-            output_dir=f'{args.out_dir}-exp-block',
-            save_at_end=args.not_save,
-            log_interval=args.log_interval,
-        ),
-        DatasetConfig(
-            train_loader,
-            val_loader
-        ),
-        loss_fn=loss_fn,
-    )
-    
-    print('=' * 20 + 'Start Training Block_model Model' + '=' * 20)
-    trainer.train()
-    print()
-
-    print('=' * 20 + 'Generating With Block_model Model' + '=' * 20)
-    cache = ConceptronCache(config, 1, 768, num_layers=config.num_layers * 2)
-    generate(block_model, tok, prompt='Hello, ', max_new_tokens=512, cache=cache)
-    print('=' * 60)
-    cache = ConceptronCache(config, 1, 768, num_layers=config.num_layers * 2)
-    generate(block_model, tok, prompt='AI is', max_new_tokens=512, cache=cache)
-    print('=' * 60)
-    cache = ConceptronCache(config, 1, 768, num_layers=config.num_layers * 2)
-    generate(block_model, tok, prompt='Mathematics', max_new_tokens=512, cache=cache)
-    print('=' * 60)
-    cache = ConceptronCache(config, 1, 768, num_layers=config.num_layers * 2)
-    generate(block_model, tok, prompt='Neural Network', max_new_tokens=512, cache=cache)
-    print('=' * 60)

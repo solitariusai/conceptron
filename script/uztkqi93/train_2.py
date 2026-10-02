@@ -40,7 +40,7 @@ def process_dataset(repo: str, max_len: int, batch_size: int, workers: int, val_
     train, val = train_validation_split(ds, 0.1)
     def tokenize(rows):
         rows = jax.tree.map(lambda *r: list(r), *rows)
-        return {'input_ids': tok.encode(rows['text'])}
+        return {'input_ids': tok.encode(rows['text'])} # ty: ignore[unresolved-attribute]
 
     train_loader = DataLoader(
         train, 
