@@ -5,7 +5,7 @@ from taktiny.utils.typing import QuantConfig
 
 from conceptron._parts.conf import ConceptronTextConfig
 from conceptron._parts.fn import rotate_half
-from conceptron._parts.utils import ConceptronCache
+from conceptron._parts.utils import AxisNames, ConceptronCache
 
 
 def product_attention(
@@ -84,7 +84,7 @@ class ConceptronAttention(nn.Module):
             rngs=rngs,
             bias=False,
             quant=quant,
-            axis_names=('hidden', 'num_heads', 'head_dim'),
+            axis_names=AxisNames.AttentionQKV,
             dtype=config.dtype,
         )
         self.o_proj = nn.Linear(
@@ -93,7 +93,7 @@ class ConceptronAttention(nn.Module):
             rngs=rngs,
             bias=False,
             quant=quant,
-            axis_names=('num_heads', 'head_dim', 'hidden'),
+            axis_names=AxisNames.AttentionO,
             dtype=config.dtype,
         )
 

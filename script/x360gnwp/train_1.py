@@ -1,3 +1,4 @@
+import argparse
 from typing import Any
 
 import grain.python as grain
@@ -5,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import optax
 from datasets import load_dataset
+from jax.sharding import AxisType
 from taktiny import nn
 from taktiny.data import BatchMap, DataLoader, Pack, train_validation_split
 from taktiny.trainer import DatasetConfig, Trainer, TrainingConfig
@@ -54,7 +56,7 @@ def process_dataset(repo: str, max_len: int, batch_size: int, workers: int, val_
             num_threads=0,
             prefetch_buffer_size=0,
         ),
-        axis_names=('batch', 'seq'),
+        axis_names=('batch', 'sequence'),
         batch_size=batch_size,
         drop_remainder=True,
     )
@@ -70,7 +72,7 @@ def process_dataset(repo: str, max_len: int, batch_size: int, workers: int, val_
             num_threads=0,
             prefetch_buffer_size=0,
         ),
-        axis_names=('batch', 'seq'),
+        axis_names=('batch', 'sequence'),
         batch_size=batch_size,
         drop_remainder=True,
     )
@@ -79,8 +81,6 @@ def process_dataset(repo: str, max_len: int, batch_size: int, workers: int, val_
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser()
 
     # data
@@ -104,12 +104,28 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    mesh = jax.make_mesh((jax.device_count(), 1), ('model', 'data'))
+    mesh = jax.make_mesh(
+        (jax.device_count(), 1), 
+        ('model', 'data'), 
+        (AxisType.Auto, AxisType.Auto)
+    )
     jax.set_mesh(mesh)
-    map_logical_axis_names({}) # training on colab v5e-1 so no need to map
+    map_logical_axis_names({
+        'vocab': None,
+        'hidden': 'model',
+        'num_heads': None,
+        'head_dim': None,
+        'intermediate': None,
+        'batch': None,
+        'sequence': None,
+    })
 
     train_loader, val_loader = process_dataset(
-        args.data_repo, args.max_seq_len, args.batch_size, args.workers, args.eval_rows
+        args.data_repo, 
+        args.max_seq_len, 
+        args.batch_size, 
+        args.workers, 
+        args.eval_rows
     )
 
     config = ControlConfig()

@@ -47,6 +47,10 @@ class ConceptronCache(Pytree):
 class AxisNames:
     Embedding = ('vocab', 'hidden')
     RMSNorm = ('hidden',)
+    AttentionQKV = ('hidden', 'num_heads', 'head_dim')
+    AttentionO = ('num_heads', 'head_dim', 'hidden')
+    MLPW1 = ('hidden', 'intermediate')
+    MLPW2 = ('intermediate', 'hidden')
 
 
 __all__ = ['AxisNames', 'ConceptronCache']

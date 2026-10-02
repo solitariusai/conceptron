@@ -4,6 +4,7 @@ from taktiny import nn
 from taktiny.utils.typing import QuantConfig
 
 from conceptron._parts.conf import ConceptronTextConfig
+from conceptron._parts.utils import AxisNames
 
 
 class ConceptronMLP(nn.Module):
@@ -14,7 +15,7 @@ class ConceptronMLP(nn.Module):
             rngs=rngs,
             bias=False,
             quant=quant,
-            axis_names=('hidden', 'inter'),
+            axis_names=AxisNames.MLPW1,
             dtype=config.dtype,
         )
         self.w2 = nn.Linear(
@@ -23,7 +24,7 @@ class ConceptronMLP(nn.Module):
             rngs=rngs,
             bias=False,
             quant=quant,
-            axis_names=('inter', 'hidden'),
+            axis_names=AxisNames.MLPW2,
             dtype=config.dtype,
         )
 
