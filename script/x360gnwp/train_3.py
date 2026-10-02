@@ -106,7 +106,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     mesh = jax.make_mesh(
-        (jax.device_count(), 1), 
+        (1, jax.device_count()), 
         ('model', 'data'), 
         (AxisType.Auto, AxisType.Auto)
     )
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         'num_heads': None,
         'head_dim': None,
         'intermediate': None,
-        'batch': None,
+        'batch': 'data',
         'sequence': None,
     })
 
