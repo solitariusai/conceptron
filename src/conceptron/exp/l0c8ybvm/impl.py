@@ -222,6 +222,60 @@ class Exp_l0c8ybvm_weight_sum(nn.Module):
             z = x
             w = jax.new_ref(self.w(x))
             z, _ = layer(fwd_layer, z, x, layer_idx, w, w_idx)
+
+            w_idx[...] = jnp.asarray(0, dtype='uint32')
+            x = z
+
+        x = jax.checkpoint(self.norm)(x)
+        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+        if cache is not None:
+            cache.advance(logits.shape[1])
+            
+        return logits
+
+class Exp_l0c8ybvm_weight_sum_bias(nn.Module):
+    def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
+        self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
+        k = 4
+        assert config.num_layers % k == 0, 'num_layers should divisble by 4'
+        num_layers_quater = config.num_layers // k
+        self.layers = [nn.SeqStack([Decoder(config, rngs=rngs) for _ in range(num_layers_quater)]) for _ in range(k)]
+        self.norm = ConceptronRMSNorm(config)
+        self.lm_head = jax.new_ref(self.wte.embedding.value.T)
+        self.rope = ConceptronRoPE(config.head_dims, config.rope_theta)
+        self.w = nn.Linear(config.hidden_size, k, bias=True, dtype='float32', rngs=rngs)
+
+    def __call__(
+        self, 
+        ids: jax.Array, 
+        mask: jax.Array | None = None,
+        position_ids: jax.Array | None = None, 
+        cache: ConceptronCache | None = None,
+    ) -> jax.Array:
+        x = jax.checkpoint(self.wte)(ids)
+        if position_ids is None:
+            if cache is not None:
+                start_idx = cache.position_idx[...]
+            else:
+                start_idx = 0
+
+            position_ids = start_idx + jnp.arange(x.shape[1])
+
+        position_embedding = self.rope(position_ids)
+        layer_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
+        def fwd_layer(layer, z, x, layer_idx, w, w_idx):
+            w = w[..., w_idx[...]][..., None]
+            z = (jax.checkpoint(layer)(x, mask, position_embedding, cache, layer_idx[...]) * w).astype(dtype) + z
+            layer_idx[...] += 1
+            w_idx[...] += 1
+            return z, None
+
+        dtype = x.dtype
+        w_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
+        for layer in self.layers:
+            z = x
+            w = jax.new_ref(self.w(x))
+            z, _ = layer(fwd_layer, z, x, layer_idx, w, w_idx)
             
             w_idx[...] = jnp.asarray(0, dtype='uint32')
             x = z
@@ -238,4 +292,5 @@ __all__ = [
     'Exp_l0c8ybvm_mean',
     'Exp_l0c8ybvm_sum',
     'Exp_l0c8ybvm_weight_sum',
+    'Exp_l0c8ybvm_weight_sum_bias',
 ]
