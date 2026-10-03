@@ -13,7 +13,7 @@ from taktiny.trainer import DatasetConfig, Trainer, TrainingConfig
 from taktiny.utils import map_logical_axis_names
 
 from conceptron._parts import ConceptronCache
-from conceptron.exp.qe5orgnx import ControlConfig, Exp_qe5orgnx_3
+from conceptron.exp.qe5orgnx import ControlConfig, Exp_qe5orgnx_nope
 from conceptron.proc import TokenizerExp
 
 
@@ -22,7 +22,7 @@ def forward(model, ids, mask, cache) -> jax.Array:
     logits = model(ids, mask, cache=cache)
     return logits
 
-def generate(model: Exp_qe5orgnx_3, tokenizer: Any, prompt: str, max_new_tokens: int, cache: ConceptronCache):
+def generate(model: Exp_qe5orgnx_nope, tokenizer: Any, prompt: str, max_new_tokens: int, cache: ConceptronCache):
     print(prompt, end='', flush=True)
     ids = jnp.asarray(tokenizer.encode(prompt, return_tensors='np'))
     mask = jnp.tril(jnp.ones((ids.shape[1], cache.cache_length), dtype=jnp.bool_))
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     schedule = optax.cosine_decay_schedule(args.lr, args.max_steps)
     optimizer = optax.adamw(schedule, weight_decay=args.wd)
 
-    model = Exp_qe5orgnx_3(config, rngs=nn.Rngs(0))
+    model = Exp_qe5orgnx_nope(config, rngs=nn.Rngs(0))
     trainer = Trainer(
         model,
         TrainingConfig(
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             optimizer=optimizer,
             eval_strategy='steps' if args.eval else 'no',
             eval_steps=args.max_steps // 4 if args.max_steps > 10 else args.max_steps,
-            output_dir=f'{args.out_dir}-qe5orgnx-3',
+            output_dir=f'{args.out_dir}-qe5orgnx-nope',
             save_at_end=args.not_save,
             log_interval=args.log_interval,
         ),
@@ -166,7 +166,7 @@ if __name__ == "__main__":
         loss_fn=loss_fn,
     )
     
-    name = 'Exp-3'
+    name = 'Exp_qe5orgnx_nope'
     print('=' * 20 + f'Start Training {name}' + '=' * 20)
     trainer.train()
     print()

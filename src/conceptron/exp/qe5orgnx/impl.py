@@ -86,7 +86,7 @@ class Decoder(nn.Module):
 
         return x
 
-class Exp_qe5orgnx_1(nn.Module):
+class Exp_qe5orgnx_nope(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -132,7 +132,7 @@ class Exp_qe5orgnx_1(nn.Module):
             
         return logits
 
-class Exp_qe5orgnx_2(nn.Module):
+class Exp_qe5orgnx_attn(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -178,7 +178,7 @@ class Exp_qe5orgnx_2(nn.Module):
             
         return logits
 
-class Exp_qe5orgnx_3(nn.Module):
+class Exp_qe5orgnx_mlp(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -224,7 +224,7 @@ class Exp_qe5orgnx_3(nn.Module):
             
         return logits
 
-class Exp_qe5orgnx_4(nn.Module):
+class Exp_qe5orgnx_both(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -271,8 +271,8 @@ class Exp_qe5orgnx_4(nn.Module):
         return logits
 
 __all__ = [
-    'Exp_qe5orgnx_1',
-    'Exp_qe5orgnx_2',
-    'Exp_qe5orgnx_3',
-    'Exp_qe5orgnx_4',
+    'Exp_qe5orgnx_attn',
+    'Exp_qe5orgnx_both',
+    'Exp_qe5orgnx_mlp',
+    'Exp_qe5orgnx_nope',
 ]
