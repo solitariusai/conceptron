@@ -1,0 +1,1 @@
+more: https://medium.com/@shinapri/aggregating-decoder-in-transformer-model-0051733acba1
