@@ -220,7 +220,7 @@ class Exp_l0c8ybvm_weight_sum(nn.Module):
         w_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
         for layer in self.layers:
             z = x
-            w = jax.new_ref(self.w(x))
+            w = jax.new_ref(jax.checkpoint(self.w)(x))
             z, _ = layer(fwd_layer, z, x, layer_idx, w, w_idx)
 
             w_idx[...] = jnp.asarray(0, dtype='uint32')
