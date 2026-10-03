@@ -97,12 +97,15 @@ if __name__ == "__main__":
     parser.add_argument('--wd', type=float, default=0.0)
     parser.add_argument('--log-interval', type=int, default=10)
     parser.add_argument('--out-dir', type=str, default='out')
+    parser.add_argument('--loss-chunk-size', type=int, default=128)
 
     # other
     parser.add_argument('--workers', type=int, default=0)
     parser.add_argument('--not-save', action='store_false', default=True) # debug
 
     args = parser.parse_args()
+    if args.loss_chunk_size < 1:
+        parser.error('--loss-chunk-size must be positive')
 
     mesh = jax.make_mesh(
         (jax.device_count(), 1), 
@@ -133,15 +136,46 @@ if __name__ == "__main__":
 
     def loss_fn(model, batch):
         input_ids = batch['input_ids']
+
+        def pass_loss_fn(x, lm_head_ref):
+            # Chunk token positions across the whole batch, not each sequence.
+            hidden = x[:, :-1].reshape(-1, x.shape[-1])
+            targets = input_ids[:, 1:].reshape(-1)
+            num_tokens = targets.shape[0]
+            if num_tokens == 0:
+                raise ValueError('next-token loss requires at least two tokens per sequence')
+            chunk_size = min(args.loss_chunk_size, num_tokens)
+            padding = (-num_tokens) % chunk_size
+            hidden = jnp.pad(hidden, ((0, padding), (0, 0)))
+            targets = jnp.pad(targets, ((0, padding),))
+            valid = jnp.arange(num_tokens + padding) < num_tokens
+            lm_head = lm_head_ref[...]
+
+            def chunk_loss(hidden_chunk, target_chunk, valid_chunk):
+                logits = jnp.dot(hidden_chunk, lm_head).astype(jnp.float32)
+                losses = optax.softmax_cross_entropy_with_integer_labels(logits, target_chunk)
+                return jnp.where(valid_chunk, losses, 0.0).sum()
+
+            remat_chunk_loss = jax.checkpoint(chunk_loss, prevent_cse=False)
+
+            def step(total, inputs):
+                return total + remat_chunk_loss(*inputs), None
+
+            total, _ = jax.lax.scan(
+                step,
+                jnp.asarray(0.0, dtype=jnp.float32),
+                (
+                    hidden.reshape(-1, chunk_size, x.shape[-1]),
+                    targets.reshape(-1, chunk_size),
+                    valid.reshape(-1, chunk_size),
+                ),
+            )
+            return total / num_tokens
+
         position_ids = batch['position_ids']
         segment_ids = jnp.cumsum(position_ids == 0, -1) - 1
         mask = jnp.tril(segment_ids[..., :, None] == segment_ids[..., None, :])[:, None, ...]
-        logits = model(input_ids, mask, position_ids)
-        loss = optax.softmax_cross_entropy_with_integer_labels(
-            logits[:, :-1],
-            input_ids[:, 1:]
-        )
-        return loss.mean()
+        return model(input_ids, mask, position_ids, loss_fn=pass_loss_fn)
 
     schedule = optax.cosine_decay_schedule(args.lr, args.max_steps)
     optimizer = optax.adamw(schedule, weight_decay=args.wd)
@@ -187,4 +221,3 @@ if __name__ == "__main__":
     cache = ConceptronCache(config, 1, 512)
     generate(model, tok, prompt='If I can talk like other Language Model I want to say', max_new_tokens=256, cache=cache)
     print('=' * 60)
-

@@ -1,3 +1,4 @@
+from typing import Callable
 import jax
 import jax.numpy as jnp
 from taktiny import nn
@@ -210,6 +211,7 @@ class Exp_gu1gkjy4_shared_attn(nn.Module):
         mask: jax.Array | None = None,
         position_ids: jax.Array | None = None, 
         cache: ConceptronCache | None = None,
+        loss_fn: Callable | None = None,
     ) -> jax.Array:
         x = jax.checkpoint(self.wte)(ids)
         if position_ids is None:
@@ -229,8 +231,11 @@ class Exp_gu1gkjy4_shared_attn(nn.Module):
             
         x, _ = self.layers(fwd_layer, x, layer_idx)
         x = jax.checkpoint(self.norm)(x)
-        
-        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+        if loss_fn is not None:
+            return loss_fn(x, self.lm_head)
+        else:
+            logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+
         if cache is not None:
             cache.advance(logits.shape[1])
             
@@ -250,6 +255,7 @@ class Exp_gu1gkjy4_shared_mlp(nn.Module):
         mask: jax.Array | None = None,
         position_ids: jax.Array | None = None, 
         cache: ConceptronCache | None = None,
+        loss_fn: Callable | None = None,
     ) -> jax.Array:
         x = jax.checkpoint(self.wte)(ids)
         if position_ids is None:
@@ -271,7 +277,11 @@ class Exp_gu1gkjy4_shared_mlp(nn.Module):
         x, _ = self.layers(fwd_layer, x, layer_idx)
         x = jax.checkpoint(self.norm)(x)
         
-        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+        if loss_fn is not None:
+            return loss_fn(x, self.lm_head)
+        else:
+            logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+
         if cache is not None:
             cache.advance(logits.shape[1])
             
@@ -291,6 +301,7 @@ class Exp_gu1gkjy4_independent(nn.Module):
         mask: jax.Array | None = None,
         position_ids: jax.Array | None = None, 
         cache: ConceptronCache | None = None,
+        loss_fn: Callable | None = None,
     ) -> jax.Array:
         x = jax.checkpoint(self.wte)(ids)
         if position_ids is None:
@@ -312,7 +323,11 @@ class Exp_gu1gkjy4_independent(nn.Module):
         x, _ = self.layers(fwd_layer, x, layer_idx)
         x = jax.checkpoint(self.norm)(x)
         
-        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+        if loss_fn is not None:
+            return loss_fn(x, self.lm_head)
+        else:
+            logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+            
         if cache is not None:
             cache.advance(logits.shape[1])
             
