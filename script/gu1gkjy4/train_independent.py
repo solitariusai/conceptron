@@ -105,7 +105,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     mesh = jax.make_mesh(
-        (1, jax.device_count()), 
+        (jax.device_count(), 1), 
         ('model', 'data'), 
         (AxisType.Auto, AxisType.Auto)
     )
