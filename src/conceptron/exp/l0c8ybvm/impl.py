@@ -72,7 +72,7 @@ class Decoder(nn.Module):
         cache: ConceptronCache | None = None,
         layer_idx: jax.Array | int | None = None,
         add_attn_residual: bool = True,
-        add_mlp_residual: bool = True,
+        add_mlp_residual: bool = False,
     ):
         res = x
         x = self.attn(self.norm1(x), mask, position_embedding, cache, layer_idx)
