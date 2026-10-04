@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import jax
 import jax.numpy as jnp
 from taktiny import nn
@@ -197,6 +198,7 @@ class Exp_l0c8ybvm_weight_sum(nn.Module):
         mask: jax.Array | None = None,
         position_ids: jax.Array | None = None, 
         cache: ConceptronCache | None = None,
+        loss_fn: Callable | None = None,
     ) -> jax.Array:
         x = jax.checkpoint(self.wte)(ids)
         if position_ids is None:
@@ -227,7 +229,11 @@ class Exp_l0c8ybvm_weight_sum(nn.Module):
             x = z
 
         x = jax.checkpoint(self.norm)(x)
-        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+        if loss_fn is not None:
+            return loss_fn(x, self.lm_head)
+        else:
+            logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+
         if cache is not None:
             cache.advance(logits.shape[1])
             
@@ -251,6 +257,7 @@ class Exp_l0c8ybvm_weight_sum_bias(nn.Module):
         mask: jax.Array | None = None,
         position_ids: jax.Array | None = None, 
         cache: ConceptronCache | None = None,
+        loss_fn: Callable | None = None,``
     ) -> jax.Array:
         x = jax.checkpoint(self.wte)(ids)
         if position_ids is None:
@@ -281,7 +288,11 @@ class Exp_l0c8ybvm_weight_sum_bias(nn.Module):
             x = z
 
         x = jax.checkpoint(self.norm)(x)
-        logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+        if loss_fn is not None:
+            return loss_fn(x, self.lm_head)
+        else:
+            logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+
         if cache is not None:
             cache.advance(logits.shape[1])
             
