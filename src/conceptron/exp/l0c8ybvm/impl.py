@@ -1,4 +1,5 @@
 from collections.abc import Callable
+
 import jax
 import jax.numpy as jnp
 from taktiny import nn
@@ -257,7 +258,7 @@ class Exp_l0c8ybvm_weight_sum_bias(nn.Module):
         mask: jax.Array | None = None,
         position_ids: jax.Array | None = None, 
         cache: ConceptronCache | None = None,
-        loss_fn: Callable | None = None,``
+        loss_fn: Callable | None = None,
     ) -> jax.Array:
         x = jax.checkpoint(self.wte)(ids)
         if position_ids is None:
