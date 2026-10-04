@@ -13,10 +13,10 @@ from conceptron._parts import (
     ConceptronTokenEmbedding,
     rotate_half,
 )
-from conceptron.exp.l0c8ybvm.conf import ControlConfig
+from conceptron.exp.hwmkul36.conf import ControlConfig
 
 
-class Attention_l0c8ybvm(ConceptronAttention):
+class Attention_hwmkul36(ConceptronAttention):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         super().__init__(config, rngs=rngs, quant=None)
 
@@ -63,7 +63,7 @@ class Decoder(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.norm1 = ConceptronRMSNorm(config)
         self.norm2 = ConceptronRMSNorm(config)
-        self.attn = Attention_l0c8ybvm(config, rngs=rngs)
+        self.attn = Attention_hwmkul36(config, rngs=rngs)
         self.mlp = ConceptronMLP(config, rngs=rngs, quant=None)
 
     def __call__(
@@ -74,7 +74,7 @@ class Decoder(nn.Module):
         cache: ConceptronCache | None = None,
         layer_idx: jax.Array | int | None = None,
         add_attn_residual: bool = True,
-        add_mlp_residual: bool = False,
+        add_mlp_residual: bool = True,
     ):
         res = x
         x = self.attn(self.norm1(x), mask, position_embedding, cache, layer_idx)
@@ -88,7 +88,7 @@ class Decoder(nn.Module):
 
         return x
 
-class Exp_l0c8ybvm_sum(nn.Module):
+class Exp_hwmkul36_sum(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -134,7 +134,7 @@ class Exp_l0c8ybvm_sum(nn.Module):
             
         return logits
 
-class Exp_l0c8ybvm_mean(nn.Module):
+class Exp_hwmkul36_mean(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -181,7 +181,7 @@ class Exp_l0c8ybvm_mean(nn.Module):
             
         return logits
 
-class Exp_l0c8ybvm_weight_sum(nn.Module):
+class Exp_hwmkul36_weight_sum(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -198,7 +198,6 @@ class Exp_l0c8ybvm_weight_sum(nn.Module):
             dtype='float32', 
             rngs=rngs, 
             kernel_initializer=jax.nn.initializers.constant(1 / k),
-            bias_initializer=jax.nn.initializers.zeros
         )
 
     def __call__(
@@ -248,7 +247,7 @@ class Exp_l0c8ybvm_weight_sum(nn.Module):
             
         return logits
 
-class Exp_l0c8ybvm_weight_sum_bias(nn.Module):
+class Exp_hwmkul36_weight_sum_bias(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -315,7 +314,7 @@ class Exp_l0c8ybvm_weight_sum_bias(nn.Module):
             
         return logits
 
-class Exp_l0c8ybvm_rmsnorm(nn.Module):
+class Exp_hwmkul36_rmsnorm(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -363,7 +362,7 @@ class Exp_l0c8ybvm_rmsnorm(nn.Module):
             
         return logits
 
-class Exp_l0c8ybvm_rmsnorm_no_affine(nn.Module):
+class Exp_hwmkul36_rmsnorm_no_affine(nn.Module):
     def __init__(self, config: ControlConfig, *, rngs: nn.Rngs):
         self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
         k = 4
@@ -413,10 +412,10 @@ class Exp_l0c8ybvm_rmsnorm_no_affine(nn.Module):
 
 
 __all__ = [
-    'Exp_l0c8ybvm_mean',
-    'Exp_l0c8ybvm_rmsnorm',
-    'Exp_l0c8ybvm_rmsnorm_no_affine',
-    'Exp_l0c8ybvm_sum',
-    'Exp_l0c8ybvm_weight_sum',
-    'Exp_l0c8ybvm_weight_sum_bias',
+    'Exp_hwmkul36_mean',
+    'Exp_hwmkul36_rmsnorm',
+    'Exp_hwmkul36_rmsnorm_no_affine',
+    'Exp_hwmkul36_sum',
+    'Exp_hwmkul36_weight_sum',
+    'Exp_hwmkul36_weight_sum_bias',
 ]
