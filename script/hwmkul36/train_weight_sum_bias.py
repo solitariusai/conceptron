@@ -189,7 +189,7 @@ if __name__ == "__main__":
             optimizer=optimizer,
             eval_strategy='steps' if args.eval else 'no',
             eval_steps=args.max_steps // 4 if args.max_steps > 10 else args.max_steps,
-            output_dir=f'{args.out_dir}-hwmkul36-weight-sum',
+            output_dir=f'{args.out_dir}-hwmkul36-weight-sum-bias',
             save_at_end=args.not_save,
             log_interval=args.log_interval,
         ),
@@ -221,4 +221,3 @@ if __name__ == "__main__":
     cache = ConceptronCache(config, 1, 512)
     generate(model, tok, prompt='If I can talk like other Language Model I want to say', max_new_tokens=256, cache=cache)
     print('=' * 60)
-

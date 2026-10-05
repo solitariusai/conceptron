@@ -1,3 +1,4 @@
+from jax.sharding import PartitionSpec
 from collections.abc import Callable
 
 import jax
@@ -191,14 +192,7 @@ class Exp_hwmkul36_weight_sum(nn.Module):
         self.norm = ConceptronRMSNorm(config)
         self.lm_head = jax.new_ref(self.wte.embedding.value.T)
         self.rope = ConceptronRoPE(config.head_dims, config.rope_theta)
-        self.w = nn.Linear(
-            config.hidden_size, 
-            k, 
-            bias=False, 
-            dtype='float32', 
-            rngs=rngs, 
-            kernel_initializer=jax.nn.initializers.constant(1 / k),
-        )
+        self.w = nn.Parameter((1 / num_layers_quater) * jnp.ones((k, num_layers_quater), 'float32'), partition_spec=PartitionSpec())
 
     def __call__(
         self, 
@@ -220,7 +214,7 @@ class Exp_hwmkul36_weight_sum(nn.Module):
         position_embedding = self.rope(position_ids)
         layer_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
         def fwd_layer(layer, z, x, layer_idx, w, w_idx):
-            w = w[..., w_idx[...]][..., None]
+            w = w[w_idx[...]]
             z = (jax.checkpoint(layer)(x, mask, position_embedding, cache, layer_idx[...]) * w).astype(dtype) + z
             layer_idx[...] += 1
             w_idx[...] += 1
@@ -228,9 +222,9 @@ class Exp_hwmkul36_weight_sum(nn.Module):
 
         dtype = x.dtype
         w_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
-        for layer in self.layers:
+        for idx, layer in enumerate(self.layers):
+            w = self.w[idx]
             z = x
-            w = jax.new_ref(jax.checkpoint(self.w)(x))
             z, _ = layer(fwd_layer, z, x, layer_idx, w, w_idx)
 
             w_idx[...] = jnp.asarray(0, dtype='uint32')
@@ -257,15 +251,8 @@ class Exp_hwmkul36_weight_sum_bias(nn.Module):
         self.norm = ConceptronRMSNorm(config)
         self.lm_head = jax.new_ref(self.wte.embedding.value.T)
         self.rope = ConceptronRoPE(config.head_dims, config.rope_theta)
-        self.w = nn.Linear(
-            config.hidden_size, 
-            k, 
-            bias=True, 
-            dtype='float32', 
-            rngs=rngs, 
-            kernel_initializer=jax.nn.initializers.constant(1 / k),
-            bias_initializer=jax.nn.initializers.zeros
-        )
+        self.w = nn.Parameter((1 / num_layers_quater) * jnp.ones((k, num_layers_quater), 'float32'), partition_spec=PartitionSpec())
+        self.b = nn.Parameter(jnp.zeros((k,), 'float32'), partition_spec=PartitionSpec())
 
     def __call__(
         self, 
@@ -287,7 +274,7 @@ class Exp_hwmkul36_weight_sum_bias(nn.Module):
         position_embedding = self.rope(position_ids)
         layer_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
         def fwd_layer(layer, z, x, layer_idx, w, w_idx):
-            w = w[..., w_idx[...]][..., None]
+            w = w[w_idx[...]]
             z = (jax.checkpoint(layer)(x, mask, position_embedding, cache, layer_idx[...]) * w).astype(dtype) + z
             layer_idx[...] += 1
             w_idx[...] += 1
@@ -295,13 +282,13 @@ class Exp_hwmkul36_weight_sum_bias(nn.Module):
 
         dtype = x.dtype
         w_idx = jax.new_ref(jnp.asarray(0, dtype='uint32'))
-        for layer in self.layers:
+        for idx, layer in enumerate(self.layers):
+            w = self.w[idx]
             z = x
-            w = jax.new_ref(self.w(x))
             z, _ = layer(fwd_layer, z, x, layer_idx, w, w_idx)
             
             w_idx[...] = jnp.asarray(0, dtype='uint32')
-            x = z
+            x = z + self.b[idx]
 
         x = jax.checkpoint(self.norm)(x)
         if loss_fn is not None:
