@@ -189,7 +189,7 @@ if __name__ == "__main__":
             optimizer=optimizer,
             eval_strategy='steps' if args.eval else 'no',
             eval_steps=args.max_steps // 4 if args.max_steps > 10 else args.max_steps,
-            output_dir=f'{args.out_dir}-czcn8um3-k2',
+            output_dir=f'{args.out_dir}-czcn8um3-k1',
             save_at_end=args.not_save,
             log_interval=args.log_interval,
         ),
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         loss_fn=loss_fn,
     )
     
-    name = 'Exp_czcn8um3-k2'
+    name = 'Exp_czcn8um3-k1'
     print('=' * 20 + f'Start Training {name}' + '=' * 20)
     trainer.train()
     print()
