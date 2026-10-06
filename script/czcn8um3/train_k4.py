@@ -205,6 +205,9 @@ if __name__ == "__main__":
     trainer.train()
     print()
 
+    print('=' * 20 + f'w in {name}' + '=' * 20)
+    print(model.w.value)
+
     print('=' * 20 + f'Generating With {name}' + '=' * 20)
     cache = ConceptronCache(config, 1, 512)
     generate(model, tok, prompt='Hello, ', max_new_tokens=256, cache=cache)
