@@ -148,7 +148,66 @@ class Exp_czcn8um3(nn.Module):
             
         return logits
 
+class Exp_czcn8um3_vmap(nn.Module):
+    def __init__(self, config: ControlConfig, *, rngs: nn.Rngs, k: int):
+        self.wte = ConceptronTokenEmbedding(config, rngs=rngs)
+        assert k in (1, 2, 4, 6, 8)
+        assert config.num_layers % k == 0, 'num_layers should divisble by 4'
+        num_layers_quater = config.num_layers // k
+        self.layers = [nn.Stack([Decoder(config, rngs=rngs) for _ in range(num_layers_quater)]) for _ in range(k)]
+        self.norm = ConceptronRMSNorm(config)
+        self.lm_head = jax.new_ref(self.wte.embedding.value.T)
+        self.rope = ConceptronRoPE(config.head_dims, config.rope_theta)
+        self.w = nn.Parameter((1 / num_layers_quater) * jnp.ones((k, num_layers_quater), 'float32'), partition_spec=PartitionSpec())
+        self.num_layers_quater = num_layers_quater
+
+    def __call__(
+        self, 
+        ids: jax.Array, 
+        mask: jax.Array | None = None,
+        position_ids: jax.Array | None = None, 
+        cache: ConceptronCache | None = None,
+        loss_fn: Callable | None = None,
+    ) -> jax.Array:
+        x = jax.checkpoint(self.wte)(ids)
+        if position_ids is None:
+            if cache is not None:
+                start_idx = cache.position_idx[...]
+            else:
+                start_idx = 0
+
+            position_ids = start_idx + jnp.arange(x.shape[1])
+
+        position_embedding = self.rope(position_ids)
+        w = self.w.astype(x.dtype)
+
+        def forward_group(layer, x, mask, position_embedding, cache, layer_idc):
+            return layer(
+                x, mask, position_embedding, cache, layer_idc,
+                in_axes=(None, None, None, None, 0), out_axes=0,
+            )
+
+        for idx, layer in enumerate(self.layers):
+            layer_idc = jnp.arange(self.num_layers_quater) + idx * self.num_layers_quater
+            z = jax.checkpoint(forward_group)(
+                layer, x, mask, position_embedding, cache, layer_idc,
+            )
+            z = jax.checkpoint(jnp.einsum, static_argnums=0)("l,lbsd->bsd", w[idx], z) + x
+            x = z
+
+        x = jax.checkpoint(self.norm)(x)
+        if loss_fn is not None:
+            return loss_fn(x, self.lm_head)
+        else:
+            logits = jax.checkpoint(jnp.dot)(x, self.lm_head[...])
+
+        if cache is not None:
+            cache.advance(logits.shape[1])
+            
+        return logits
+
 
 __all__ = [
     'Exp_czcn8um3',
+    'Exp_czcn8um3_vmap',
 ]
